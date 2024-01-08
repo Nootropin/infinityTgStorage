@@ -9,19 +9,21 @@ boost::json::array fromVectorToArray(std::vector<T> arr) // transfer std::vector
     }
     return jsonArray;
 }
-boost::json::object makeJsonFromFolder(std::string folderPath,std::string outputJsonFile) // creating a json out from folder
+boost::json::object makeJsonFromFolder(std::string folderPath,std::string outputJsonFile,bool isRec) // creating a json out from folder
 {
     std::ofstream f(outputJsonFile);
+    std::cout << "FolderPath: " << folderPath << std::endl;
     boost::json::object value;
     for(auto i:fs::directory_iterator(folderPath))
     {
         if(i.is_directory())
         {
-            value[std::string(i.path())] = {{"type","folder"},{"filesJson",makeJsonFromFolder(i.path(),"")}};
+            boost::json::object obj = makeJsonFromFolder(fs::absolute(i.path()),"",1);
+            value[std::string(fs::absolute(i.path()))] = {{"type","folder"},{"filesJson",obj}};
         }
         else
         {
-            value[std::string(i.path())] = {{"type","file"},{"fileIds", 0}}; 
+            value[std::string(fs::absolute(i.path()))] = {{"type","file"},{"fileIds", 0}}; 
         }
     }
     f << boost::json::serialize(value);
@@ -47,12 +49,28 @@ std::vector<std::string> getFilePathsFromJson(std::string filePath,std::string j
 {
     std::ifstream f(jsonFile);
     boost::json::value json = boost::json::parse(f);
-    boost::json::value jsonArray = json.at(filePath).at("fileIds");
-    std::vector<std::string> arr;
-    for(auto const& element : jsonArray.as_array())
+    if(json.at(filePath).at("type") == "file")
     {
-        arr.push_back(element.as_string().c_str());
+        boost::json::value jsonArray = json.at(filePath).at("fileIds");
+        std::vector<std::string> arr;
+        for(auto const& element : jsonArray.as_array())
+        {
+            arr.push_back(element.as_string().c_str());
+        }
+        f.close();
+        return arr;
     }
-    f.close();
-    return arr;
+}
+boost::json::value getFolderFromJson(std::string filePath,std::string rootFolder,boost::json::value json)
+{
+    std::string folders = filePath.substr(filePath.find(rootFolder));
+    std::vector<std::string> array = StringTools::split(folders,'/');
+    rootFolder+=array[0];
+    for(int i = 0;i<array.size();i++)
+    {
+        std::cout << rootFolder << std::endl;
+        json = json.at(rootFolder);
+        rootFolder+=array[i];
+    }
+    return (json);
 }

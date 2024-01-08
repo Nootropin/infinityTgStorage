@@ -1,5 +1,9 @@
 #include"file.hpp"
 namespace fs = std::filesystem;
+std::string fileHash(std::string fileName)
+{
+    
+}
 void splitFilesIntoParts(std::string inputFileName,ull bufferSize,ull maxOutputFileSize,std::string outputFileName) // OutputFile - все файлы будут иметь вид outputPath<n>
 {
     char* buffer = new char[bufferSize]; // Creating of buffer

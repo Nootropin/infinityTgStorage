@@ -9,10 +9,6 @@ cloudBot::cloudBot(TgBot::Bot& bot) // constructor of bot
 std::vector<std::string> cloudBot::uploadFile(std::string fileName,long long messageId,std::string tempFolderName) // split file and upload it on telegram server
 {
     std::vector<std::string> returnArray; // array of filePath
-    std::cout << "File name is " << fileName << std::endl;
-    fs::remove_all(tempFolderName);
-    fs::create_directory(tempFolderName); // creating empty folder
-    fs::current_path(fileName.substr(0,fileName.find_last_of('/'))); // setting current path at path of file
     std::string path = tempFolderName + "/tempFile";
     splitFilesIntoParts(fileName,19922944,19922944,path); // 19922944 - 19 Mb
     for(int i = 0;fs::exists(path + std::to_string(i));i++)
@@ -37,19 +33,29 @@ void cloudBot::downloadFile(std::string filePath,std::string outputName) // down
     f << fileData;
     f.close();
 }
-void cloudBot::restoreFile(std::string fileName,std::string jsonFile,std::string outputFileName) // get splitted files and connect them
+void cloudBot::restoreFile(std::string fileName,std::string jsonFile,std::string outputFileName,std::string tempFolder) // get splitted files and connect them
 {
-    this->downloadFilesFromCloud(fileName,jsonFile,outputFileName);
-    connectSplittedFiles(outputFileName,19922944,outputFileName); // 19922944 - 19 MB
-    fs::remove_all(outputFileName.substr(0,outputFileName.find_last_of('/')-1)); // remove temparary folder
+    std::filesystem::create_directory(tempFolder);
+    this->downloadFilesFromCloud(fileName,jsonFile,tempFolder + "/" + outputFileName);
+    connectSplittedFiles(tempFolder + "/" + outputFileName,19922944,outputFileName); // 19922944 - 19 MB
+    fs::remove_all(tempFolder); // remove temparary folder
 }
 void cloudBot::downloadFilesFromCloud(std::string filePath,std::string jsonFile,std::string outputPath) // get filePathes and download
 {
-    std::fstream f(jsonFile);
-    boost::json::value json = boost::json::parse(f);
     std::vector<std::string> paths = getFilePathsFromJson(filePath,jsonFile);
-    for(int i = 0;i<paths.size();i++)
+    if(paths.size() > 0)
     {
-        downloadFile(paths[i],outputPath  + std::to_string(i));
+        if(paths[0] != "folder")
+        {
+            for(int i = 0;i<paths.size();i++)
+            {
+                std::cout << "Downloading " << paths[i] << std::endl;
+                downloadFile(paths[i],outputPath  + std::to_string(i));
+            }
+        }
     }
+}
+void cloudBot::downloadFolder(std::string folderName,std::string jsonFile,std::string outputFolderName)
+{
+    
 }
